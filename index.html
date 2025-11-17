@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>লগইন / রেজিস্টার</title>
+    
+    <!-- CSS: Simple Auth Style -->
+    <style>
+        :root { --primary-color: #9060eb; --bg-light: #f0f0f5; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .auth-container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width: 300px; text-align: center; }
+        h2 { color: var(--primary-color); margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 10px; transition: background-color 0.3s; }
+        button:hover { background-color: #7d49e7; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <h2>লগইন / রেজিস্টার</h2>
+        <input type="email" id="email" placeholder="ইমেইল" required>
+        <input type="password" id="password" placeholder="পাসওয়ার্ড" required>
+        <button onclick="handleAuth(true)">লগইন</button>
+        <button onclick="handleAuth(false)">রেজিস্টার</button>
+    </div>
+
+    <script>
+        // লোকাল স্টোরেজ থেকে ডেটা লোড করার ফাংশন
+        function getAppData() {
+            const defaultData = {
+                users: {},
+                config: { trc20Address: 'TRC20_DEMO_ADDRESS', telegramLink: 'https://t.me/demo_channel', earningProfitRate: 50, earningTime: '30 Days', referralCommission: 0.50 },
+                transactions: {},
+                earnings: {},
+                nextTransactionId: 1
+            };
+            return JSON.parse(localStorage.getItem('appData')) || defaultData;
+        }
+
+        // লোকাল স্টোরেজে ডেটা সেভ করার ফাংশন
+        function saveAppData(data) {
+            localStorage.setItem('appData', JSON.stringify(data));
+        }
+
+        // জিমেইলকে একটি ডামি ইউজার আইডি-তে পরিবর্তন করার ফাংশন
+        function emailToUid(email) {
+            return 'user_' + btoa(email.toLowerCase()).replace(/=/g, '').substring(0, 10);
+        }
+        
+        // ** লোকাল স্টোরেজ ভিত্তিক সিমুলেটেড অথেন্টিকেশন **
+        function handleAuth(isLogin) {
+            const email = document.getElementById('email').value.toLowerCase().trim();
+            const password = document.getElementById('password').value;
+            if (!email || !password) { alert("Email and Password required."); return; }
+
+            let appData = getAppData();
+            const dummyUserId = emailToUid(email);
+            const userData = appData.users[dummyUserId];
+
+            if (isLogin) {
+                if (userData && userData.password === password) {
+                    localStorage.setItem('userToken', dummyUserId); 
+                    window.location.href = 'user_app.html';
+                } else {
+                    alert("Login Failed: Incorrect Email or Password.");
+                }
+            } else {
+                if (userData) {
+                    alert("Registration Failed: User already exists.");
+                } else {
+                    // নতুন ইউজার তৈরি
+                    appData.users[dummyUserId] = {
+                        email: email,
+                        password: password, // <-- পাসওয়ার্ড সেভ (নিরাপত্তাহীন, শুধুমাত্র ডেমোর জন্য)
+                        balance: 0.00,
+                        name: email.split('@')[0],
+                        profilePic: 'default',
+                        pendingReward: null,
+                        referralId: dummyUserId.substring(0, 8),
+                        referralCount: 0,
+                        unclaimedReferral: 0, 
+                        referredBy: (new URLSearchParams(window.location.search)).get('ref') // রেফারেল আইডি সেভ করা
+                    };
+                    saveAppData(appData);
+                    localStorage.setItem('userToken', dummyUserId); 
+                    window.location.href = 'user_app.html';
+                }
+            }
+        }
+
+        // ইনিশিয়ালাইজেশন: যদি অলরেডি লগইন থাকে, তবে user_app এ পাঠান
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('userToken')) {
+                window.location.href = 'user_app.html';
+            }
+        });
+    </script>
+</body>
+</html>
